@@ -1,0 +1,88 @@
+.Dd December 05, 2017
+.Dt PSEUDO 1
+.Os
+.Sh NAME
+.Nm pseudo
+.Nd execute command inside a container
+.Sh SYNOPSIS
+.Nm
+.Op Fl g Ar map
+.Op Fl u Ar map
+.Op Ar command Op Ar args\ ...
+.Sh DESCRIPTION
+The
+.Nm
+utility executes a command or shell as root in a new user namespace,
+by analogy with
+.Xr sudo 8
+which runs a command as root in the host user namespace.
+.Pp
+Unlike
+.Xr contain 1 ,
+.Nm
+does not unshare other namespaces or attemt to insolate the new process
+from the rest of the host.
+It has identical default UID/GID mappings,
+.Fl u
+and
+.Fl g
+options,
+and support for
+.Pa /etc/subuid
+and
+.Pa /etc/subgid
+when installed setuid root.
+See
+.Xr subuid 5
+and
+.Xr subgid 5
+respectively.
+No other
+.Xr contain 1
+options are supported by
+.Nm .
+.Pp
+One use for
+.Nm
+is as a more capable replacement for
+.Xr fakeroot 1 ,
+useful for testing,
+when building software packages or for constructing system images.
+Unlike the traditional
+.Xr fakeroot 1
+approach based on
+.Dq LD_PRELOAD ,
+static binaries and chroot jails are both handled correctly.
+.Pp
+It is also invaluable for running host software to access the same
+filesystem as a container,
+replicating the user and group file ownerships
+that the container would see.
+For example,
+in the demo above,
+the system image is untarred under
+.Nm
+so that files
+are written into the filesystem with UIDs and GIDs mapped for
+the container rather than unmapped as on the host.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl g Ar map
+Set the container-to-host GID map.
+See
+.Xr containers 7 .
+.It Fl u Ar map
+Set the container-to-host UID map.
+See
+.Xr containers 7 .
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr contain 1 ,
+.Xr unshare 1 ,
+.Xr subgid 5 ,
+.Xr subuid 5
+.Sh AUTHORS
+.An Chris Webb Aq Mt chris@arachsys.com

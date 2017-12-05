@@ -1,0 +1,164 @@
+.Dd December 05, 2017
+.Dt CONTAIN 1
+.Os
+.Sh NAME
+.Nm contain
+.Nd execute a new container
+.Sh SYNOPSIS
+.Nm
+.Op Fl cn
+.Op Fl g Ar map
+.Op Fl i Ar cmd
+.Op Fl o Ar cmd
+.Op Fl u Ar map
+.Ar dir
+.Op Ar command Op Ar args\ ...
+.Sh DESCRIPTION
+.Nm
+creates a new container with
+.Ar dir
+recursively bound as its root filesystem, running
+.Ar command
+as PID 1 whithin that container.
+.Pp
+If unspecified,
+.Ar command
+defaults to
+.Pa /bin/sh
+to start a shell,
+to fully boot a distribution specifiy
+.Ar command as
+.Pa /bin/init
+or
+.Pa /sbin/init .
+.Pp
+The container init process is isolated in new,
+user,
+cgroup,
+mount,
+IPC,
+UTS,
+and
+PID namespaces.
+A synthetic
+.Pa /dev
+with device nodes bound from the host
+.Pa /dev
+is automatically mounted within the new mount namespace,
+together with standard
+.Pa /dev/pts ,
+.Pa /proc
+and
+.Pa /sys
+filesystems.
+.Pp
+Because it runs in its own user namespace,
+users and groups seen inside a container are not the same as the
+underlying credentials visible for the same process and files on the
+host.
+Sensible default container-to-host UID and GID mappings are provided
+as described in
+.Xr containers 7 ,
+but the
+.Fl u
+and
+.Fl g
+options can be used to override the defaults.
+.Pp
+The container console is a host pseudo-terminal bound at
+.Pa /dev/console
+in the new
+.Pa /dev
+filesystem:
+.Em stdin
+and
+.Em stdout
+are copied to/from this,
+and it serves as
+.Em stdin ,
+.Em stdout
+and
+.Em stderr
+for the container init process.
+This console emulation can be disabled using the
+.Fl c
+option: if
+.Fl c
+is used,
+init is run directly with the
+.Em stdin ,
+.Em stdout
+and
+.Em stderr
+of the
+.Nm
+command.
+.Pp
+Containers are usually isolated in their own network namespace,
+with a distinct set of network interfaces from the host.
+By specifying the
+.Fl n
+option,
+it is possible to safely share the host network stack instead.
+If you do this, user networking within the container will work normally,
+but the container has no privileges with respect to its network
+namespace so it isn't possible to \&(re\&)configure interfaces or routes,
+and setuid utilities like
+.Xr ping 1
+which use a raw socket will fail.
+.Pp
+Two different kinds of helper program can be used to help set up a
+container.
+A program specified with
+.Fl i
+is run inside the new namespaces with the new root filesystem
+as its working directory,
+just before pivoting into it.
+Typically this type of helper is used to bind-mount additional parts of
+the host filesystem inside the container.
+.Pp
+A helper specified with
+.Fl o
+is run outside the namespaces but as a direct
+child of the supervisor process which is running within them.
+This type of helper can be used to move host network interfaces
+.Pq such as a macvtap interface or one half of a veth pair
+into the container's network
+namespace.
+.Pp
+The environment of the container init process includes
+.Dq container=contain
+so that distributions can identify when they are running under
+.Nm .
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl c
+Disable console emulation in the container.
+.It Fl g Ar map
+Set the container-to-host GID map.
+See
+.Xr containers 7 .
+.It Fl i Ar cmd
+Run
+.Ar cmd
+inside the new namespaces.
+.It Fl n
+Share the host network unprivileged in the container.
+.It Fl o Ar cmd
+Run
+.Ar cmd
+outside the new namespaces.
+.It Fl u Ar map
+Set the container-to-host UID map.
+See
+.Xr containers 7 .
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr unshare 1 ,
+.Xr namespaces 7 ,
+.Xr user_namespaces 7
+.Sh AUTHORS
+.An Chris webb Aq Mt chris@arachsys.com

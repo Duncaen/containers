@@ -1,0 +1,171 @@
+.Dd December 05, 2017
+.Dt CONTAINERS 7
+.Os
+.Sh NAME
+.Nm containers
+.Nd introduction to containers
+.Sh DESCRIPTION
+The
+.Nm
+message system is a set of Unix utilities to deal with
+mail kept in Maildir folders.
+.Pp
+Its design is roughly inspired by MH, the RAND Message Handling
+System, but it is a complete implementation from scratch.
+.Pp
+.Nm
+consists of these utilities:
+.Bl -tag -width 11n -compact
+.It Xr contain 1
+execute a new container.
+.It Xr pseudo 1
+execute a command with unshared user namespace.
+.It Xr inject 1
+execute a command inside a running container.
+.El
+.Sh USER/GROUP MAPPINGS
+By default, when run as root,
+.Xr contain 1
+and
+.Xr pseudo 1
+will map container UID/GID 0 onto the highest available host UID/GID
+.Pq 4294967294 unless nested ,
+and all other UIDs/GIDs are mapped onto themselves apart from the top
+container UID and GID which must be left unmapped.
+.Pp
+The default mappings avoid host UID and GID 0 as the host root user is
+still granted a variety of privileges even after dropping all
+capabilities in the host user namespace.
+For example,
+.Pa /proc
+and
+.Pa /sys
+files typically have
+.Pq host
+.Sq root:root
+ownership,
+and allowing the container access unfiltered access to
+things like
+.Pa /proc/sys
+is dangerous.
+.Pp
+Run as an unprivileged user,
+container UID/GID 0 is mapped onto the unprivileged user\&'s UID/GID,
+then container UIDs/GIDs
+1,
+2,
+etc. are successively mapped onto any ranges delegated to that user in
+.Pa /etc/subuid
+and
+.Pa /etc/subgid
+from
+.Xr subuid 5
+and
+.Xr subgid 5
+respectively.
+.Pp
+The
+.Fl u
+and
+.Fl g
+options can be used to specify custom mappings,
+in the format
+.Dq START:LOWER:COUNT[,START:LOWER:COUNT]...
+where
+.Em START
+is the first UID/GID in a container range,
+.Em LOWER
+is the first UID/GID in the corresponding range in the host,
+and
+.Em COUNT
+is the length of these ranges.
+.Pp
+For example,
+.Dq -u 0:1000:1,1:4000:2000
+will map container UID
+.Sq 0
+onto host UID
+.Sq 1000
+and container UIDs
+.Sq 1...2000
+onto host UIDs
+.Sq 4000...5999 .
+.Pp
+It is not possible to map more than one container ID onto a given host ID,
+nor to list the same container ID twice in a map specification.
+When invoked by an unprivileged user,
+all host ranges are checked against
+.Pa /etc/subuid
+and
+.Pa /etc/subgid .
+.Pp
+Unmapped users and groups are mapped by the kernel onto the overflow UID and
+GID set in
+.Pa /proc/sys/kernel/overflowuid
+and
+.Pa /proc/sys/kernel/overflowgid .
+By default the kernel sets both these values to
+.Sq 65534 .
+.Sh UNPRIVILEGED OPERATION
+When a non-root user runs
+.Xr contain 1
+or
+.Xr pseudo 1
+unprivileged,
+these tools can only map container UID/GIDs onto the host UID/GID of
+that user.
+The resulting container is not very useful as it has just a single user
+and group available.
+.Pq Typically only root is mapped in the container.
+.Pp
+However,
+.Xr contain 1
+and
+.Xr pseudo 1
+can also be installed setuid root,
+and in this case,
+unprivileged users can also map onto ranges of UIDs/GIDs that have
+been delegated for their use in
+.Pa /etc/subuid
+and
+.Pa /etc/subgid .
+See
+.Xr subuid 5
+and
+.Xr subgid 5
+for their format respectively.
+.Pp
+Linux 3.19 and later do not allow unprivileged processes to write a
+GID map unless the
+.Xr setgroups 2
+call has been permanently disabled by writing
+.Dq deny
+to
+.Pa /proc/PID/setgroups .
+This is a fix for
+.Em CVE-2014-8989
+which applied to strangely-configured systems where group membership
+implies more restricted permissions rather than supplementary permissions.
+.Pp
+As a result, when run non-setuid by an unprivileged user,
+.Xr contain 1
+and
+.Xr pseudo 1
+must disable
+.Xr setgroups 2
+in the container.
+Conversely,
+when installed setuid root,
+they will use their privilege to bypass this kernel restriction,
+resulting in fully-functional containers which still support
+.Xr setgroups 2 .
+However,
+this also means that they can be used to bypass restrictions implemented
+by group membership.
+.Sh SEE ALSO
+.Xr contain 1 ,
+.Xr unshare 1 ,
+.Xr subgid 5 ,
+.Xr subuid 5
+.Sh AUTHORS
+.An Chris Webb Aq Mt chris@arachsys.com

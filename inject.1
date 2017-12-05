@@ -1,0 +1,55 @@
+.Dd December 05, 2017
+.Dt INJECT 1
+.Os
+.Sh NAME
+.Nm inject
+.Nd execute command inside a container
+.Sh SYNOPSIS
+.Nm
+.Ar pid
+.Op Ar command Op Ar args\ ...
+.Sh DESCRIPTION
+The
+.Nm
+utility executes a command or shell inside the existing container
+specified with
+.Ar pid ,
+where
+.Ar pid
+is the process ID of a running container supervisor.
+The environment,
+.Em stdin ,
+.Em stdout
+and
+.Em  stderr
+of
+.Nm
+are all inherited by the command to be run.
+.Pp
+The container supervisor PID
+.Pq i.e. that of contain itself
+should be given to
+.Nm ,
+not the PID of the descendant init process.
+The
+.Nm
+utility will only work if process specified has a child with
+.Dq container=contain
+in its environment,
+which it assumes to be the container init.
+.Pp
+Linux allows an unprivileged user to join the user namespace of any
+container started by his UID,
+so
+.Nm
+need not be installed setuid even if
+contain and pseudo are setuid root.
+It will refuse to run if it detects
+setuid/setgid operation.
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr contain 1 ,
+.Xr unshare 1
+.Sh AUTHORS
+.An Chris Webb Aq Mt chris@arachsys.com

@@ -1,5 +1,6 @@
 PREFIX =
 BINDIR = ${PREFIX}/bin
+MANDIR = ${PREFIX}/share/man
 DESTDIR =
 
 CC = gcc
@@ -20,9 +21,11 @@ clean:
 	rm -f -- ${BINARIES} ${SUIDROOT} tags *.o
 
 install: ${BINARIES} ${SUIDROOT}
-	mkdir -p ${DESTDIR}${BINDIR}
+	mkdir -p ${DESTDIR}${BINDIR} ${DESTDIR}${MANDIR}/man1 ${DESTDIR}${MANDIR}/man7
 	install -s ${BINARIES} ${DESTDIR}${BINDIR}
 	install -g root -m 4755 -o root -s ${SUIDROOT} ${DESTDIR}${BINDIR}
+	install contain.1 pseudo.1 inject.1 ${DESTDIR}${MANDIR}/man1
+	install containers.7 ${DESTDIR}${MANDIR}/man7
 
 tags:
 	ctags -R
